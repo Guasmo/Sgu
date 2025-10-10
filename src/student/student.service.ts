@@ -3,7 +3,7 @@ import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PaginationDto } from 'src/dto/pagination.dto';
+import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class StudentService {

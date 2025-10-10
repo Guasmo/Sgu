@@ -2,7 +2,7 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PaginationDto } from 'src/dto/pagination.dto';
+import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class CareerService {

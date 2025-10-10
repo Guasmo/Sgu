@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { StudentsubjectService } from './studentsubject.service';
 import { CreateStudentsubjectDto } from './dto/create-studentsubject.dto';
 import { UpdateStudentsubjectDto } from './dto/update-studentsubject.dto';
-import { PaginationDto } from 'src/dto/pagination.dto';
+import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Controller('studentsubject')
 export class StudentsubjectController {
