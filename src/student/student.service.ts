@@ -43,11 +43,11 @@ export class StudentService {
   
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new ConflictException('Speciality with this name already exists');
+            throw new ConflictException('student with this name already exists');
           }
         }
   
-        throw new InternalServerErrorException('Error creating speciality');
+        throw new InternalServerErrorException('Error creating student');
       }
     }
 
