@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -41,9 +41,9 @@ export class StudentService {
           throw error;
         }
   
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error instanceof PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new ConflictException('student with this name already exists');
+            throw new ConflictException('Student with this email already exists');
           }
         }
   
@@ -112,12 +112,72 @@ export class StudentService {
     }
   }
   
-  update(id: number, updateStudentDto: UpdateStudentDto) {
-    return `This action updates a #${id} student`;
+  async update(id: number, updateStudentDto: UpdateStudentDto) {
+    try {
+      const existingStudent = await this.prisma.student.findUnique({
+        where: { id }
+      });
+
+      if (!existingStudent) {
+        throw new NotFoundException(`Student with ID ${id} not found`);
+      }
+
+      if (updateStudentDto.email) {
+        const duplicateEmail = await this.prisma.student.findFirst({
+          where: {
+            email: updateStudentDto.email,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateEmail) {
+          throw new ConflictException(`Student with email ${updateStudentDto.email} already exists`);
+        }
+      }
+
+      const updatedStudent = await this.prisma.student.update({
+        where: { id },
+        data: updateStudentDto,
+        include: {
+          career: true,
+          studentSubjects: {
+            include: {
+              subject: true
+            }
+          }
+        }
+      });
+
+      return updatedStudent;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating student');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} student`;
+  async remove(id: number) {
+    try {
+      const existingStudent = await this.prisma.student.findUnique({
+        where: { id }
+      });
+
+      if (!existingStudent) {
+        throw new NotFoundException(`Student with ID ${id} not found`);
+      }
+
+      await this.prisma.student.delete({
+        where: { id }
+      });
+
+      return { message: `Student with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing student');
+    }
   }
   }
 

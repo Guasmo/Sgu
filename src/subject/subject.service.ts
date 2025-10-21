@@ -2,7 +2,7 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -41,7 +41,7 @@ export class SubjectService {
         throw error;
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Subject already exists');
         }
@@ -98,11 +98,66 @@ export class SubjectService {
     }
   }
 
-  update(id: number, updateSubjectDto: UpdateSubjectDto) {
-    return `This action updates a #${id} subject`;
+  async update(id: number, updateSubjectDto: UpdateSubjectDto) {
+    try {
+      const existingSubject = await this.prisma.subject.findUnique({
+        where: { id }
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(`Subject with ID ${id} not found`);
+      }
+
+      if (updateSubjectDto.name || updateSubjectDto.careerId || updateSubjectDto.cicleNumber) {
+        const duplicateSubject = await this.prisma.subject.findFirst({
+          where: {
+            name: updateSubjectDto.name || existingSubject.name,
+            careerId: updateSubjectDto.careerId || existingSubject.careerId,
+            cicleNumber: updateSubjectDto.cicleNumber || existingSubject.cicleNumber,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateSubject) {
+          throw new ConflictException(`A subject with these details already exists in this career and cycle`);
+        }
+      }
+
+      const updatedSubject = await this.prisma.subject.update({
+        where: { id },
+        data: updateSubjectDto,
+        include: this.subjectIncludes
+      });
+
+      return updatedSubject;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating subject');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} subject`;
+  async remove(id: number) {
+    try {
+      const existingSubject = await this.prisma.subject.findUnique({
+        where: { id }
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(`Subject with ID ${id} not found`);
+      }
+
+      await this.prisma.subject.delete({
+        where: { id }
+      });
+
+      return { message: `Subject with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing subject');
+    }
   }
 }

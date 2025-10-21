@@ -3,6 +3,7 @@ import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class CareerService {
@@ -37,11 +38,16 @@ export class CareerService {
 
       return career;
     } catch (error) {
-    if (error instanceof ConflictException) {
-      throw error;
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('Career with this name already exists');
+        }
+      }
+      throw new InternalServerErrorException("Error creating career");
     }
-    throw new InternalServerErrorException("Error creating career");
-  }
   }
 
 
@@ -95,11 +101,64 @@ export class CareerService {
     }  
   }
 
-  update(id: number, updateCareerDto: UpdateCareerDto) {
-    return `This action updates a #${id} career`;
+  async update(id: number, updateCareerDto: UpdateCareerDto) {
+    try {
+      const existingCareer = await this.prisma.career.findUnique({
+        where: { id }
+      });
+
+      if (!existingCareer) {
+        throw new NotFoundException(`Career with ID ${id} not found`);
+      }
+
+      if (updateCareerDto.name) {
+        const duplicateName = await this.prisma.career.findFirst({
+          where: {
+            name: updateCareerDto.name,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateName) {
+          throw new ConflictException(`Career with name ${updateCareerDto.name} already exists`);
+        }
+      }
+
+      const updatedCareer = await this.prisma.career.update({
+        where: { id },
+        data: updateCareerDto,
+        include: this.careerIncludes
+      });
+
+      return updatedCareer;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating career');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} career`;
+  async remove(id: number) {
+    try {
+      const existingCareer = await this.prisma.career.findUnique({
+        where: { id }
+      });
+
+      if (!existingCareer) {
+        throw new NotFoundException(`Career with ID ${id} not found`);
+      }
+
+      await this.prisma.career.delete({
+        where: { id }
+      });
+
+      return { message: `Career with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing career');
+    }
   }
 }

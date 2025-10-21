@@ -2,7 +2,7 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateStudentsubjectDto } from './dto/create-studentsubject.dto';
 import { UpdateStudentsubjectDto } from './dto/update-studentsubject.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -39,7 +39,7 @@ export class StudentsubjectService {
         throw error;
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Student is already enrolled in this subject');
         }
@@ -96,11 +96,65 @@ export class StudentsubjectService {
     }
   }
 
-  update(id: number, updateStudentsubjectDto: UpdateStudentsubjectDto) {
-    return `This action updates a #${id} studentsubject`;
+  async update(id: number, updateStudentsubjectDto: UpdateStudentsubjectDto) {
+    try {
+      const existingStudentSubject = await this.prisma.studentSubject.findUnique({
+        where: { id }
+      });
+
+      if (!existingStudentSubject) {
+        throw new NotFoundException(`Student Subject relationship with ID ${id} not found`);
+      }
+
+      if (updateStudentsubjectDto.studentId || updateStudentsubjectDto.subjectId) {
+        const duplicateEnrollment = await this.prisma.studentSubject.findFirst({
+          where: {
+            studentId: updateStudentsubjectDto.studentId || existingStudentSubject.studentId,
+            subjectId: updateStudentsubjectDto.subjectId || existingStudentSubject.subjectId,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateEnrollment) {
+          throw new ConflictException(`This student is already enrolled in this subject`);
+        }
+      }
+
+      const updatedStudentSubject = await this.prisma.studentSubject.update({
+        where: { id },
+        data: updateStudentsubjectDto,
+        include: this.studentSubjectIncludes
+      });
+
+      return updatedStudentSubject;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating student subject relationship');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} studentsubject`;
+  async remove(id: number) {
+    try {
+      const existingStudentSubject = await this.prisma.studentSubject.findUnique({
+        where: { id }
+      });
+
+      if (!existingStudentSubject) {
+        throw new NotFoundException(`Student Subject relationship with ID ${id} not found`);
+      }
+
+      await this.prisma.studentSubject.delete({
+        where: { id }
+      });
+
+      return { message: `Student Subject relationship with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing student subject relationship');
+    }
   }
 }

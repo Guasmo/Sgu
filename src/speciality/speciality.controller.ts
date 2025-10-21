@@ -18,7 +18,7 @@ export class SpecialityController {
     return this.specialityService.findAll(findWithPagination);
   }
 
-  @Get(':id/id_speciality/idcareer')
+  @Get(':id')
   findOne(@Param('id') id: string) {
     return this.specialityService.findOne(+id);
   }

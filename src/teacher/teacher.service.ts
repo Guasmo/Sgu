@@ -4,6 +4,7 @@ import { UpdateTeacherDto } from './dto/update-teacher.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PaginationDto } from 'src/pagination/pagination.dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/binary';
 
 @Injectable()
 export class TeacherService {
@@ -46,7 +47,7 @@ export class TeacherService {
         throw error;
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Teacher with this email already exists');
         }
@@ -103,11 +104,64 @@ export class TeacherService {
     }
   }
 
-  update(id: number, updateTeacherDto: UpdateTeacherDto) {
-    return `This action updates a #${id} teacher`;
+  async update(id: number, updateTeacherDto: UpdateTeacherDto) {
+    try {
+      const existingTeacher = await this.prisma.teacher.findUnique({
+        where: { id }
+      });
+
+      if (!existingTeacher) {
+        throw new NotFoundException(`Teacher with ID ${id} not found`);
+      }
+
+      if (updateTeacherDto.email) {
+        const duplicateEmail = await this.prisma.teacher.findFirst({
+          where: {
+            email: updateTeacherDto.email,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateEmail) {
+          throw new ConflictException(`Teacher with email ${updateTeacherDto.email} already exists`);
+        }
+      }
+
+      const updatedTeacher = await this.prisma.teacher.update({
+        where: { id },
+        data: updateTeacherDto,
+        include: this.teacherIncludes
+      });
+
+      return updatedTeacher;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating teacher');
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} teacher`;
+  async remove(id: number) {
+    try {
+      const existingTeacher = await this.prisma.teacher.findUnique({
+        where: { id }
+      });
+
+      if (!existingTeacher) {
+        throw new NotFoundException(`Teacher with ID ${id} not found`);
+      }
+
+      await this.prisma.teacher.delete({
+        where: { id }
+      });
+
+      return { message: `Teacher with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing teacher');
+    }
   }
 }

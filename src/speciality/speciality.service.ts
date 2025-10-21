@@ -2,7 +2,7 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateSpecialityDto } from './dto/create-speciality.dto';
 import { UpdateSpecialityDto } from './dto/update-speciality.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -36,7 +36,7 @@ export class SpecialityService {
         throw error;
       }
 
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException('Speciality with this name already exists');
         }
@@ -96,11 +96,63 @@ export class SpecialityService {
     }
   }
 
-  update(id: number, updateSpecialityDto: UpdateSpecialityDto ) {
-      return `This action updates a #${id} speciality`;
+  async update(id: number, updateSpecialityDto: UpdateSpecialityDto) {
+    try {
+      const existingSpeciality = await this.prisma.speciality.findUnique({
+        where: { id }
+      });
+
+      if (!existingSpeciality) {
+        throw new NotFoundException(`Speciality with ID ${id} not found`);
+      }
+
+      if (updateSpecialityDto.name) {
+        const duplicateName = await this.prisma.speciality.findFirst({
+          where: {
+            name: updateSpecialityDto.name,
+            id: { not: id }
+          }
+        });
+
+        if (duplicateName) {
+          throw new ConflictException(`Speciality with name ${updateSpecialityDto.name} already exists`);
+        }
+      }
+
+      const updatedSpeciality = await this.prisma.speciality.update({
+        where: { id },
+        data: updateSpecialityDto
+      });
+
+      return updatedSpeciality;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error updating speciality');
     }
-  
-    remove(id: number) {
-      return `This action removes a #${id} speciality`;
+  }
+
+  async remove(id: number) {
+    try {
+      const existingSpeciality = await this.prisma.speciality.findUnique({
+        where: { id }
+      });
+
+      if (!existingSpeciality) {
+        throw new NotFoundException(`Speciality with ID ${id} not found`);
+      }
+
+      await this.prisma.speciality.delete({
+        where: { id }
+      });
+
+      return { message: `Speciality with ID ${id} has been successfully removed` };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error removing speciality');
     }
+  }
 }
