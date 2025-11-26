@@ -1,8 +1,6 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -10,66 +8,30 @@ export class StudentService {
   
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createStudentDto: CreateStudentDto) {
-      try {
-  
-        const existingStudent = await this.prisma.student.findUnique({
-          where: {
-            email: createStudentDto.email
-          }
-        });
-  
-        if (existingStudent) {
-          throw new ConflictException('Student already exists');
-        }
-  
-        const studentData = await this.prisma.student.create({
-          data: {
-            name: createStudentDto.name,
-            age: createStudentDto.age,
-            email: createStudentDto.email,
-            phone: createStudentDto.phone,
-            careerId: createStudentDto.careerId,
-            currentCicle: createStudentDto.currentCicle 
-          },
-        });
-  
-        return studentData;
-  
-      } catch (error) {
-        if (error instanceof ConflictException) {
-          throw error;
-        }
-  
-        if (error instanceof PrismaClientKnownRequestError) {
-          if (error.code === 'P2002') {
-            throw new ConflictException('Student with this email already exists');
-          }
-        }
-  
-        throw new InternalServerErrorException('Error creating student');
-      }
-    }
-
   async findAll(findWithPagination: PaginationDto) {
     const { page = 1, limit = 10 } = findWithPagination;
     const skip = (page - 1) * limit;
 
     try {
       const [data, total] = await Promise.all([
-        this.prisma.student.findMany({
+        this.prisma.user.findMany({
+          where: { role: 'STUDENT' },
           skip,
           take: limit,
           include: {
-            career: true,
-            studentSubjects: {
+            studentProfile: {
               include: {
-                subject: true
+                career: true,
+                studentSubjects: {
+                  include: {
+                    subject: true
+                  }
+                }
               }
             }
           }
         }),
-        this.prisma.student.count()
+        this.prisma.user.count({ where: { role: 'STUDENT' } })
       ]);
 
       return {
@@ -86,23 +48,27 @@ export class StudentService {
 
   async findOne(id: number) {
     try {
-      const student = await this.prisma.student.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id },
         include: {
-          career: true,
-          studentSubjects: {
+          studentProfile: {
             include: {
-              subject: true
+              career: true,
+              studentSubjects: {
+                include: {
+                  subject: true
+                }
+              }
             }
           }
         }
       });
 
-      if (!student) {
+      if (!user || user.role !== 'STUDENT') {
         throw new NotFoundException('Student not found');
       }
 
-      return student;
+      return user;
 
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -114,16 +80,16 @@ export class StudentService {
   
   async update(id: number, updateStudentDto: UpdateStudentDto) {
     try {
-      const existingStudent = await this.prisma.student.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id }
       });
 
-      if (!existingStudent) {
+      if (!user || user.role !== 'STUDENT') {
         throw new NotFoundException(`Student with ID ${id} not found`);
       }
 
       if (updateStudentDto.email) {
-        const duplicateEmail = await this.prisma.student.findFirst({
+        const duplicateEmail = await this.prisma.user.findFirst({
           where: {
             email: updateStudentDto.email,
             id: { not: id }
@@ -131,24 +97,51 @@ export class StudentService {
         });
 
         if (duplicateEmail) {
-          throw new ConflictException(`Student with email ${updateStudentDto.email} already exists`);
+          throw new ConflictException(`User with email ${updateStudentDto.email} already exists`);
         }
       }
 
-      const updatedStudent = await this.prisma.student.update({
+      // Prepare update data for user
+      const userUpdateData = {
+        ...(updateStudentDto.name && { name: updateStudentDto.name }),
+        ...(updateStudentDto.email && { email: updateStudentDto.email }),
+        ...(updateStudentDto.phone !== undefined && { phone: updateStudentDto.phone }),
+        ...(updateStudentDto.age !== undefined && { age: updateStudentDto.age }),
+        ...(updateStudentDto.status && { status: updateStudentDto.status }),
+      };
+
+      // Prepare update data for student profile
+      const profileUpdateData = {
+        ...(updateStudentDto.careerId && { careerId: updateStudentDto.careerId }),
+        ...(updateStudentDto.currentCicle && { currentCicle: updateStudentDto.currentCicle }),
+      };
+
+      // Update user and profile
+      const updatedUser = await this.prisma.user.update({
         where: { id },
-        data: updateStudentDto,
+        data: {
+          ...userUpdateData,
+          ...(Object.keys(profileUpdateData).length > 0 && {
+            studentProfile: {
+              update: profileUpdateData
+            }
+          })
+        },
         include: {
-          career: true,
-          studentSubjects: {
+          studentProfile: {
             include: {
-              subject: true
+              career: true,
+              studentSubjects: {
+                include: {
+                  subject: true
+                }
+              }
             }
           }
         }
       });
 
-      return updatedStudent;
+      return updatedUser;
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ConflictException) {
         throw error;
@@ -159,15 +152,16 @@ export class StudentService {
 
   async remove(id: number) {
     try {
-      const existingStudent = await this.prisma.student.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id }
       });
 
-      if (!existingStudent) {
+      if (!user || user.role !== 'STUDENT') {
         throw new NotFoundException(`Student with ID ${id} not found`);
       }
 
-      await this.prisma.student.delete({
+      // Delete will cascade to studentProfile due to the schema configuration
+      await this.prisma.user.delete({
         where: { id }
       });
 
@@ -179,5 +173,5 @@ export class StudentService {
       throw new InternalServerErrorException('Error removing student');
     }
   }
-  }
+}
 

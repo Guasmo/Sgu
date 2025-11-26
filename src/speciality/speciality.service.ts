@@ -2,7 +2,6 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateSpecialityDto } from './dto/create-speciality.dto';
 import { UpdateSpecialityDto } from './dto/update-speciality.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -36,12 +35,6 @@ export class SpecialityService {
         throw error;
       }
 
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException('Speciality with this name already exists');
-        }
-      }
-
       throw new InternalServerErrorException('Error creating speciality');
     }
   }
@@ -55,9 +48,6 @@ export class SpecialityService {
       this.prisma.speciality.findMany({
         skip,
         take: limit,
-        include: {
-          teachers:true
-        }
       }),
       this.prisma.speciality.count()
     ]);
@@ -77,10 +67,7 @@ export class SpecialityService {
   async findOne(id: number) {
     try {
       const speciality = await this.prisma.speciality.findUnique({
-        where: { id },
-        include: {
-          teachers: true
-        }
+        where: { id }
       });
 
       if (!speciality) {

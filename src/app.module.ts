@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -8,10 +9,24 @@ import { TeacherModule } from './teacher/teacher.module';
 import { SubjectModule } from './subject/subject.module';
 import { StudentsubjectModule } from './studentsubject/studentsubject.module';
 import { StudentModule } from './student/student.module';
+import { AuthModule } from './auth/auth.module';
 
 
 @Module({
-  imports: [PrismaModule, SpecialityModule, CareerModule, TeacherModule, SubjectModule, StudentsubjectModule, StudentModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    PrismaModule, 
+    SpecialityModule, 
+    CareerModule, 
+    TeacherModule, 
+    SubjectModule, 
+    StudentsubjectModule, 
+    StudentModule, 
+    AuthModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,94 +1,109 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  age       Int?
+  role      Role     @default(STUDENT)
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  teacherProfile  TeacherProfile?
+  studentProfile  StudentProfile?
+
+  @@index([role])
+  @@index([email])
+  @@map("user")
 }
 
 model Speciality {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?   @db.Text
-  teachers    Teacher[]
+  id       Int        @id @default(autoincrement())
+  name     String     @unique
+  description String? @db.Text
+  teachers TeacherProfile[]
 
   @@map("speciality")
 }
 
 model Career {
-  id            Int       @id @default(autoincrement())
-  name          String    @unique
-  totalCicles   Int       @map("total_cicles")
-  durationYears Int       @map("duration_years")
-  teachers      Teacher[]
-  subjects      Subject[]
-  students      Student[]
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  totalCicles     Int              @map("total_cicles")
+  durationYears   Int              @map("duration_years")
+  teachers        TeacherProfile[]
+  students        StudentProfile[]
+  subjects        Subject[]
 
   @@map("career")
 }
 
-model Teacher {
+model TeacherProfile {
   id           Int        @id @default(autoincrement())
-  name         String
-  phone        String?
-  email        String     @unique
-  age          Int?
+  userId       Int        @unique @map("user_id")
   specialityId Int        @map("speciality_id")
   careerId     Int        @map("career_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   speciality   Speciality @relation(fields: [specialityId], references: [id])
   career       Career     @relation(fields: [careerId], references: [id])
   subjects     Subject[]
 
-  @@map("teacher")
+  @@map("teacher_profile")
+}
+
+model StudentProfile {
+  id              Int              @id @default(autoincrement())
+  userId          Int              @unique @map("user_id")
+  careerId        Int              @map("career_id")
+  currentCicle    Int              @map("current_cicle")
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  career          Career           @relation(fields: [careerId], references: [id])
+  studentSubjects StudentSubject[]
+
+  @@index([careerId, currentCicle])
+  @@map("student_profile")
 }
 
 model Subject {
-  id              Int              @id @default(autoincrement())
-  name            String
-  careerId        Int              @map("career_id")
-  cicleNumber     Int              @map("cicle_number")
-  teacherId       Int?             @map("teacher_id")
-  career          Career           @relation(fields: [careerId], references: [id])
-  teacher         Teacher?         @relation(fields: [teacherId], references: [id])
-  studentSubjects StudentSubject[]
+  id               Int              @id @default(autoincrement())
+  name             String
+  careerId         Int              @map("career_id")
+  cicleNumber      Int              @map("cicle_number")
+  teacherProfileId Int?             @map("teacher_profile_id")
+  career           Career           @relation(fields: [careerId], references: [id])
+  teacherProfile   TeacherProfile?  @relation(fields: [teacherProfileId], references: [id])
+  studentSubjects  StudentSubject[]
 
   @@unique([careerId, cicleNumber, name])
   @@index([careerId, cicleNumber])
   @@map("subject")
 }
 
-model Student {
-  id              Int              @id @default(autoincrement())
-  name            String
-  age             Int?
-  email           String           @unique
-  phone           String?
-  careerId        Int              @map("career_id")
-  currentCicle    Int              @map("current_cicle")
-  status          String           @default("active") // active, graduated, suspended, withdrawn
-  career          Career           @relation(fields: [careerId], references: [id])
-  studentSubjects StudentSubject[]
-
-  @@index([careerId, currentCicle])
-  @@map("student")
-}
-
 model StudentSubject {
-  id             Int      @id @default(autoincrement())
-  studentId      Int      @map("student_id")
-  subjectId      Int      @map("subject_id")
-  grade          Decimal? @db.Decimal(5, 2)
-  status         String   @default("enrolled") // enrolled, approved, failed, withdrawn
-  student        Student  @relation(fields: [studentId], references: [id])
-  subject        Subject  @relation(fields: [subjectId], references: [id])
+  id               Int            @id @default(autoincrement())
+  studentProfileId Int            @map("student_profile_id")
+  subjectId        Int            @map("subject_id")
+  grade            Decimal?       @db.Decimal(5, 2)
+  status           String         @default("enrolled")
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  subject          Subject        @relation(fields: [subjectId], references: [id])
 
-  @@unique([studentId, subjectId])
+  @@unique([studentProfileId, subjectId])
   @@map("student_subject")
 }

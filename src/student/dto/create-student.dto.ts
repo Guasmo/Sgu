@@ -24,6 +24,8 @@ export class CreateStudentDto {
     @IsEmail()
     email:          string;   
 
+    password: string
+
     @ApiProperty({
         description:"Id of a career",
         example:"1"

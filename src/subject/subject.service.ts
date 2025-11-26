@@ -2,7 +2,6 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -39,12 +38,6 @@ export class SubjectService {
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
-      }
-
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException('Subject already exists');
-        }
       }
 
       throw new InternalServerErrorException('Error creating subject');

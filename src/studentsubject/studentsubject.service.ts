@@ -2,7 +2,6 @@ import { ConflictException, Injectable, InternalServerErrorException, NotFoundEx
 import { CreateStudentsubjectDto } from './dto/create-studentsubject.dto';
 import { UpdateStudentsubjectDto } from './dto/update-studentsubject.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
@@ -10,15 +9,25 @@ export class StudentsubjectService {
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly studentSubjectIncludes = {
-    student: true,
-    subject: true
+    studentProfile: {
+      include: {
+        user: true,
+        career: true
+      }
+    },
+    subject: {
+      include: {
+        career: true,
+        teacherProfile: true
+      }
+    }
   }
 
   async create(createStudentsubjectDto: CreateStudentsubjectDto) {
     try {
       const existingEnrollment = await this.prisma.studentSubject.findFirst({
         where: {
-          studentId: createStudentsubjectDto.studentId,
+          studentProfileId: createStudentsubjectDto.studentProfileId,
           subjectId: createStudentsubjectDto.subjectId
         }
       });
@@ -37,12 +46,6 @@ export class StudentsubjectService {
     } catch (error) {
       if (error instanceof ConflictException) {
         throw error;
-      }
-
-      if (error instanceof PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException('Student is already enrolled in this subject');
-        }
       }
 
       throw new InternalServerErrorException('Error enrolling student in subject');
@@ -106,11 +109,11 @@ export class StudentsubjectService {
         throw new NotFoundException(`Student Subject relationship with ID ${id} not found`);
       }
 
-      if (updateStudentsubjectDto.studentId || updateStudentsubjectDto.subjectId) {
+      if (updateStudentsubjectDto.studentProfileId || updateStudentsubjectDto.subjectId) {
         const duplicateEnrollment = await this.prisma.studentSubject.findFirst({
           where: {
-            studentId: updateStudentsubjectDto.studentId || existingStudentSubject.studentId,
-            subjectId: updateStudentsubjectDto.subjectId || existingStudentSubject.subjectId,
+            studentProfileId: updateStudentsubjectDto.studentProfileId,
+            subjectId: updateStudentsubjectDto.subjectId,
             id: { not: id }
           }
         });
