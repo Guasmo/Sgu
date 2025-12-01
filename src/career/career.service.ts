@@ -1,17 +1,15 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaAcademicService } from 'src/prisma/prisma-academic.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class CareerService {
-  constructor(private readonly prisma:PrismaService){}
+  constructor(private readonly prisma: PrismaAcademicService) { }
 
   private readonly careerIncludes = {
-    teachers: true,
-    subjects: true,
-    students: true
+    subjects: true
   }
 
   async create(createCareerDto: CreateCareerDto) {
@@ -32,30 +30,30 @@ export class CareerService {
   }
 
   async findAll(findWithPagination: PaginationDto) {
-  const { page = 1, limit = 10 } = findWithPagination;
-  const skip = (page - 1) * limit;
+    const { page = 1, limit = 10 } = findWithPagination;
+    const skip = (page - 1) * limit;
 
-  try {
-    const [data, total] = await Promise.all([
-      this.prisma.career.findMany({
-        skip,
-        take: limit,
-        include: this.careerIncludes
-      }),
-      this.prisma.career.count()
-    ]);
+    try {
+      const [data, total] = await Promise.all([
+        this.prisma.career.findMany({
+          skip,
+          take: limit,
+          include: this.careerIncludes
+        }),
+        this.prisma.career.count()
+      ]);
 
-    return {
-      data,
-      total,
-      page,
-      limit
-    };
+      return {
+        data,
+        total,
+        page,
+        limit
+      };
 
-  } catch (error) {
-    throw new InternalServerErrorException('Error fetching careers');
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching careers');
+    }
   }
-}
 
   async findOne(id: number) {
     try {
@@ -65,11 +63,11 @@ export class CareerService {
       });
       return career;
     } catch (error) {
-      if (error instanceof NotFoundException){
+      if (error instanceof NotFoundException) {
         throw error
       }
       throw new InternalServerErrorException('Error fetching career');
-    }  
+    }
   }
 
   async update(id: number, updateCareerDto: UpdateCareerDto) {

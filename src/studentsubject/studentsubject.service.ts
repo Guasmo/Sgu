@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateStudentsubjectDto } from './dto/create-studentsubject.dto';
 import { UpdateStudentsubjectDto } from './dto/update-studentsubject.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaProfilesService } from 'src/prisma/prisma-profiles.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class StudentsubjectService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaProfilesService) { }
 
   private readonly studentSubjectIncludes = {
     studentProfile: {
@@ -18,7 +18,11 @@ export class StudentsubjectService {
     subject: {
       include: {
         career: true,
-        teacherProfile: true
+        subjectAssignments: {
+          include: {
+            teacherProfile: true
+          }
+        }
       }
     }
   }

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CareerService } from './career.service';
 import { CareerController } from './career.controller';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaAcademicService } from 'src/prisma/prisma-academic.service';
 
 @Module({
   controllers: [CareerController],
-  providers: [CareerService, PrismaService],
+  providers: [CareerService, PrismaAcademicService],
 })
-export class CareerModule {}
+export class CareerModule { }

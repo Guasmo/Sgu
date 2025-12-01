@@ -10,6 +10,9 @@ import { SubjectModule } from './subject/subject.module';
 import { StudentsubjectModule } from './studentsubject/studentsubject.module';
 import { StudentModule } from './student/student.module';
 import { AuthModule } from './auth/auth.module';
+import { PrismaUsersService } from './prisma/prisma-users.service';
+import { PrismaAcademicService } from './prisma/prisma-academic.service';
+import { PrismaProfilesService } from './prisma/prisma-profiles.service';
 
 
 @Module({
@@ -18,16 +21,26 @@ import { AuthModule } from './auth/auth.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    PrismaModule, 
-    SpecialityModule, 
-    CareerModule, 
-    TeacherModule, 
-    SubjectModule, 
-    StudentsubjectModule, 
-    StudentModule, 
+    PrismaModule,
+    SpecialityModule,
+    CareerModule,
+    TeacherModule,
+    SubjectModule,
+    StudentsubjectModule,
+    StudentModule,
     AuthModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    PrismaUsersService,
+    PrismaAcademicService,
+    PrismaProfilesService,
+  ],
+  exports: [
+    PrismaUsersService,
+    PrismaAcademicService,
+    PrismaProfilesService,
+  ]
 })
-export class AppModule {}
+export class AppModule { }

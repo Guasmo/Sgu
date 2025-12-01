@@ -11,18 +11,19 @@ import { LoginDto } from "./dto/loginDto";
 import { JwtPayload } from "./interfaces/jwt-payload.interface";
 import { RefreshDto } from "./dto/refreshDto";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "src/prisma/prisma.service";
-import { Role } from "@prisma/client";
+import { PrismaUsersService } from "src/prisma/prisma-users.service";
+import { PrismaProfilesService } from "src/prisma/prisma-profiles.service";
 import { RegisterStudentDto } from "./dto/register-student.dto";
 import { RegisterTeacherDto } from "./dto/register-teacher.dto";
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly prisma: PrismaService,
+		private readonly prisma: PrismaUsersService,
+		private readonly prismaProfiles: PrismaProfilesService,
 		private readonly jwtService: JwtService,
 		private readonly configService: ConfigService,
-	) {}
+	) { }
 
 	async registerStudent(registerStudentDto: RegisterStudentDto) {
 		try {
@@ -43,17 +44,25 @@ export class AuthService {
 					password: hashedPassword,
 					phone: registerStudentDto.phone,
 					age: registerStudentDto.age,
-					role: Role.STUDENT,
+					roleId: 3, // 3 = STUDENT
+				}
+			});
+
+			// Create UserReference and StudentProfile in profiles DB
+			await this.prismaProfiles.userReference.create({
+				data: {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					roleId: user.roleId,
+					status: user.status,
 					studentProfile: {
 						create: {
 							careerId: registerStudentDto.careerId,
 							currentCicle: registerStudentDto.currentCicle,
-						},
-					},
-				},
-				include: {
-					studentProfile: true,
-				},
+						}
+					}
+				}
 			});
 
 			// Remove password from response
@@ -83,17 +92,25 @@ export class AuthService {
 					password: hashedPassword,
 					phone: registerTeacherDto.phone,
 					age: registerTeacherDto.age,
-					role: Role.TEACHER,
+					roleId: 2, // 2 = TEACHER
+				}
+			});
+
+			// Create UserReference and TeacherProfile in profiles DB
+			await this.prismaProfiles.userReference.create({
+				data: {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					roleId: user.roleId,
+					status: user.status,
 					teacherProfile: {
 						create: {
 							specialityId: registerTeacherDto.specialityId,
 							careerId: registerTeacherDto.careerId,
-						},
-					},
-				},
-				include: {
-					teacherProfile: true,
-				},
+						}
+					}
+				}
 			});
 
 			// Remove password from response
@@ -109,18 +126,15 @@ export class AuthService {
 
 		const user = await this.prisma.user.findUnique({
 			where: { email },
-			select: {
-				email: true,
-				password: true,
-				id: true,
-				role: true,
-			},
+			include: {
+				role: true
+			}
 		});
 		if (!user) throw new UnauthorizedException("Credentials are not valid");
 		if (!bcrypt.compareSync(password, user.password))
 			throw new UnauthorizedException("Credentials are not valid");
 
-		const roleName = user.role;
+		const roleName = user.role.name;
 
 		const accessToken = this.getJwtToken(
 			{ id: user.id, role: roleName },

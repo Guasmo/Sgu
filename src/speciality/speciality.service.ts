@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateSpecialityDto } from './dto/create-speciality.dto';
 import { UpdateSpecialityDto } from './dto/update-speciality.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaAcademicService } from 'src/prisma/prisma-academic.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class SpecialityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaAcademicService) { }
 
   async create(createSpecialityDto: CreateSpecialityDto) {
     try {
@@ -40,29 +40,29 @@ export class SpecialityService {
   }
 
   async findAll(findWithPagination: PaginationDto) {
-  const { page = 1, limit = 10 } = findWithPagination;
-  const skip = (page - 1) * limit;
+    const { page = 1, limit = 10 } = findWithPagination;
+    const skip = (page - 1) * limit;
 
-  try {
-    const [data, total] = await Promise.all([
-      this.prisma.speciality.findMany({
-        skip,
-        take: limit,
-      }),
-      this.prisma.speciality.count()
-    ]);
+    try {
+      const [data, total] = await Promise.all([
+        this.prisma.speciality.findMany({
+          skip,
+          take: limit,
+        }),
+        this.prisma.speciality.count()
+      ]);
 
-    return {
-      data,
-      total,
-      page,
-      limit
-    };
+      return {
+        data,
+        total,
+        page,
+        limit
+      };
 
-  } catch (error) {
-    throw new InternalServerErrorException('Error fetching specialities');
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching specialities');
+    }
   }
-}
 
   async findOne(id: number) {
     try {

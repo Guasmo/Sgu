@@ -120,52 +120,60 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.UserScalarFieldEnum = {
+exports.Prisma.UserReferenceScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
-  password: 'password',
-  phone: 'phone',
-  age: 'age',
-  role: 'role',
+  roleId: 'roleId',
   status: 'status',
-  createdAt: 'createdAt',
+  syncedAt: 'syncedAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.SpecialityScalarFieldEnum = {
+exports.Prisma.SpecialityReferenceScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  description: 'description'
+  syncedAt: 'syncedAt'
 };
 
-exports.Prisma.CareerScalarFieldEnum = {
+exports.Prisma.CareerReferenceScalarFieldEnum = {
   id: 'id',
   name: 'name',
   totalCicles: 'totalCicles',
-  durationYears: 'durationYears'
+  syncedAt: 'syncedAt'
+};
+
+exports.Prisma.SubjectReferenceScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  careerId: 'careerId',
+  cicleNumber: 'cicleNumber',
+  syncedAt: 'syncedAt'
 };
 
 exports.Prisma.TeacherProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   specialityId: 'specialityId',
-  careerId: 'careerId'
+  careerId: 'careerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.StudentProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   careerId: 'careerId',
-  currentCicle: 'currentCicle'
+  currentCicle: 'currentCicle',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
-exports.Prisma.SubjectScalarFieldEnum = {
+exports.Prisma.SubjectAssignmentScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  careerId: 'careerId',
-  cicleNumber: 'cicleNumber',
-  teacherProfileId: 'teacherProfileId'
+  teacherProfileId: 'teacherProfileId',
+  subjectId: 'subjectId',
+  assignedAt: 'assignedAt'
 };
 
 exports.Prisma.StudentSubjectScalarFieldEnum = {
@@ -173,7 +181,9 @@ exports.Prisma.StudentSubjectScalarFieldEnum = {
   studentProfileId: 'studentProfileId',
   subjectId: 'subjectId',
   grade: 'grade',
-  status: 'status'
+  status: 'status',
+  enrolledAt: 'enrolledAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -190,19 +200,16 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
-exports.Role = exports.$Enums.Role = {
-  ADMIN: 'ADMIN',
-  TEACHER: 'TEACHER',
-  STUDENT: 'STUDENT'
-};
+
 
 exports.Prisma.ModelName = {
-  User: 'User',
-  Speciality: 'Speciality',
-  Career: 'Career',
+  UserReference: 'UserReference',
+  SpecialityReference: 'SpecialityReference',
+  CareerReference: 'CareerReference',
+  SubjectReference: 'SubjectReference',
   TeacherProfile: 'TeacherProfile',
   StudentProfile: 'StudentProfile',
-  Subject: 'Subject',
+  SubjectAssignment: 'SubjectAssignment',
   StudentSubject: 'StudentSubject'
 };
 

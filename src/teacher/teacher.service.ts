@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { UpdateTeacherDto } from './dto/update-teacher.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaProfilesService } from 'src/prisma/prisma-profiles.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class TeacherService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaProfilesService) { }
 
   private readonly teacherIncludes = {
     speciality: true,
@@ -19,8 +19,8 @@ export class TeacherService {
 
     try {
       const [data, total] = await Promise.all([
-        this.prisma.user.findMany({
-          where: { role: 'TEACHER' },
+        this.prisma.userReference.findMany({
+          where: { roleId: 2 }, // 2 = TEACHER
           skip,
           take: limit,
           include: {
@@ -33,7 +33,7 @@ export class TeacherService {
             }
           }
         }),
-        this.prisma.user.count({ where: { role: 'TEACHER' } })
+        this.prisma.userReference.count({ where: { roleId: 2 } })
       ]);
 
       return {
@@ -50,7 +50,7 @@ export class TeacherService {
 
   async findOne(id: number) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id },
         include: {
           teacherProfile: {
@@ -63,7 +63,7 @@ export class TeacherService {
         }
       });
 
-      if (!user || user.role !== 'TEACHER') {
+      if (!user || user.roleId !== 2) {
         throw new NotFoundException('Teacher not found');
       }
 
@@ -79,16 +79,16 @@ export class TeacherService {
 
   async update(id: number, updateTeacherDto: UpdateTeacherDto) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id }
       });
 
-      if (!user || user.role !== 'TEACHER') {
+      if (!user || user.roleId !== 2) {
         throw new NotFoundException(`Teacher with ID ${id} not found`);
       }
 
       if (updateTeacherDto.email) {
-        const duplicateEmail = await this.prisma.user.findFirst({
+        const duplicateEmail = await this.prisma.userReference.findFirst({
           where: {
             email: updateTeacherDto.email,
             id: { not: id }
@@ -100,12 +100,11 @@ export class TeacherService {
         }
       }
 
-      // Prepare update data for user
+      // Prepare update data for user (UserReference only has name and email)
       const userUpdateData = {
         ...(updateTeacherDto.name && { name: updateTeacherDto.name }),
         ...(updateTeacherDto.email && { email: updateTeacherDto.email }),
-        ...(updateTeacherDto.phone !== undefined && { phone: updateTeacherDto.phone }),
-        ...(updateTeacherDto.age !== undefined && { age: updateTeacherDto.age }),
+        // phone and age are not in UserReference
       };
 
       // Prepare update data for teacher profile
@@ -115,7 +114,7 @@ export class TeacherService {
       };
 
       // Update user and profile
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await this.prisma.userReference.update({
         where: { id },
         data: {
           ...userUpdateData,
@@ -147,16 +146,16 @@ export class TeacherService {
 
   async remove(id: number) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id }
       });
 
-      if (!user || user.role !== 'TEACHER') {
+      if (!user || user.roleId !== 2) {
         throw new NotFoundException(`Teacher with ID ${id} not found`);
       }
 
       // Delete will cascade to teacherProfile due to the schema configuration
-      await this.prisma.user.delete({
+      await this.prisma.userReference.delete({
         where: { id }
       });
 

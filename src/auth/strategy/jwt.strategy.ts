@@ -3,13 +3,13 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { JwtPayload } from "../interfaces/jwt-payload.interface";
-import { PrismaService } from "src/prisma/prisma.service";
-import { User } from "@prisma/client";
+import { PrismaUsersService } from "src/prisma/prisma-users.service";
+import { User } from "@prisma/client-users";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
 	constructor(
-		private prisma: PrismaService,
+		private prisma: PrismaUsersService,
 		configService: ConfigService,
 	) {
 		super({
@@ -21,7 +21,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 	async validate(payload: JwtPayload): Promise<User> {
 		const { id } = payload;
 
-		const user = await this.prisma.user.findUnique({ where: { id: id } });
+		const user = await this.prisma.user.findUnique({
+			where: { id: id },
+			include: { role: true }
+		});
 
 		if (!user) throw new UnauthorizedException("Token not valid");
 

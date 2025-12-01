@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { UpdateStudentDto } from './dto/update-student.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaProfilesService } from 'src/prisma/prisma-profiles.service';
 import { PaginationDto } from 'src/pagination/pagination.dto';
 
 @Injectable()
 export class StudentService {
-  
-  constructor(private readonly prisma: PrismaService) {}
+
+  constructor(private readonly prisma: PrismaProfilesService) { }
 
   async findAll(findWithPagination: PaginationDto) {
     const { page = 1, limit = 10 } = findWithPagination;
@@ -14,8 +14,8 @@ export class StudentService {
 
     try {
       const [data, total] = await Promise.all([
-        this.prisma.user.findMany({
-          where: { role: 'STUDENT' },
+        this.prisma.userReference.findMany({
+          where: { roleId: 3 }, // 3 = STUDENT
           skip,
           take: limit,
           include: {
@@ -31,7 +31,7 @@ export class StudentService {
             }
           }
         }),
-        this.prisma.user.count({ where: { role: 'STUDENT' } })
+        this.prisma.userReference.count({ where: { roleId: 3 } })
       ]);
 
       return {
@@ -48,7 +48,7 @@ export class StudentService {
 
   async findOne(id: number) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id },
         include: {
           studentProfile: {
@@ -64,7 +64,7 @@ export class StudentService {
         }
       });
 
-      if (!user || user.role !== 'STUDENT') {
+      if (!user || user.roleId !== 3) {
         throw new NotFoundException('Student not found');
       }
 
@@ -77,19 +77,19 @@ export class StudentService {
       throw new InternalServerErrorException('Error fetching student');
     }
   }
-  
+
   async update(id: number, updateStudentDto: UpdateStudentDto) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id }
       });
 
-      if (!user || user.role !== 'STUDENT') {
+      if (!user || user.roleId !== 3) {
         throw new NotFoundException(`Student with ID ${id} not found`);
       }
 
       if (updateStudentDto.email) {
-        const duplicateEmail = await this.prisma.user.findFirst({
+        const duplicateEmail = await this.prisma.userReference.findFirst({
           where: {
             email: updateStudentDto.email,
             id: { not: id }
@@ -101,13 +101,12 @@ export class StudentService {
         }
       }
 
-      // Prepare update data for user
+      // Prepare update data for user (UserReference only has name, email, status)
       const userUpdateData = {
         ...(updateStudentDto.name && { name: updateStudentDto.name }),
         ...(updateStudentDto.email && { email: updateStudentDto.email }),
-        ...(updateStudentDto.phone !== undefined && { phone: updateStudentDto.phone }),
-        ...(updateStudentDto.age !== undefined && { age: updateStudentDto.age }),
         ...(updateStudentDto.status && { status: updateStudentDto.status }),
+        // phone and age are not in UserReference
       };
 
       // Prepare update data for student profile
@@ -117,7 +116,7 @@ export class StudentService {
       };
 
       // Update user and profile
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await this.prisma.userReference.update({
         where: { id },
         data: {
           ...userUpdateData,
@@ -152,16 +151,16 @@ export class StudentService {
 
   async remove(id: number) {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.userReference.findUnique({
         where: { id }
       });
 
-      if (!user || user.role !== 'STUDENT') {
+      if (!user || user.roleId !== 3) {
         throw new NotFoundException(`Student with ID ${id} not found`);
       }
 
       // Delete will cascade to studentProfile due to the schema configuration
-      await this.prisma.user.delete({
+      await this.prisma.userReference.delete({
         where: { id }
       });
 
