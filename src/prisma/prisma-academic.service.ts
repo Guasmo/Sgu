@@ -20,11 +20,9 @@ export class PrismaAcademicService extends PrismaClient implements OnModuleInit,
 
   async onModuleInit() {
     await this.$connect();
-    console.log('Connected to Academic Database');
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
-    console.log('Disconnected from Academic Database');
   }
 }

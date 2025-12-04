@@ -20,11 +20,9 @@ export class PrismaUsersService extends PrismaClient implements OnModuleInit, On
 
     async onModuleInit() {
         await this.$connect();
-        console.log('Connected to Users Database');
     }
 
     async onModuleDestroy() {
         await this.$disconnect();
-        console.log('Disconnected from Users Database');
     }
 }

@@ -14,6 +14,17 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "prisma/generated/client-users": [
+        "./prisma/generated/client-users"
+      ],
+      "prisma/generated/client-academic": [
+        "./prisma/generated/client-academic"
+      ],
+      "prisma/generated/client-profiles": [
+        "./prisma/generated/client-profiles"
+      ]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

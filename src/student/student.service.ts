@@ -172,5 +172,6 @@ export class StudentService {
       throw new InternalServerErrorException('Error removing student');
     }
   }
+
 }
 

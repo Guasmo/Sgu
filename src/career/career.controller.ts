@@ -3,17 +3,14 @@ import { CareerService } from './career.service';
 import { CreateCareerDto } from './dto/create-career.dto';
 import { UpdateCareerDto } from './dto/update-career.dto';
 import { PaginationDto } from 'src/pagination/pagination.dto';
-import { Auth } from 'src/auth/decorators';
-import { Role } from '@prisma/client';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Careers')
 @Controller('career')
 export class CareerController {
-  constructor(private readonly careerService: CareerService) {}
+  constructor(private readonly careerService: CareerService) { }
 
   @ApiOperation({ summary: 'Create a new career' })
-  @Auth(Role.ADMIN)
   @Post()
   create(@Body() createCareerDto: CreateCareerDto) {
     return this.careerService.create(createCareerDto);
@@ -32,14 +29,12 @@ export class CareerController {
   }
 
   @ApiOperation({ summary: 'Update a career' })
-  @Auth(Role.ADMIN)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateCareerDto: UpdateCareerDto) {
     return this.careerService.update(+id, updateCareerDto);
   }
 
   @ApiOperation({ summary: 'Delete a career' })
-  @Auth(Role.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.careerService.remove(+id);

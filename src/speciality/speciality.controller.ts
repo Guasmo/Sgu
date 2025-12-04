@@ -3,17 +3,14 @@ import { SpecialityService } from './speciality.service';
 import { CreateSpecialityDto } from './dto/create-speciality.dto';
 import { UpdateSpecialityDto } from './dto/update-speciality.dto';
 import { PaginationDto } from 'src/pagination/pagination.dto';
-import { Auth } from 'src/auth/decorators';
-import { Role } from '@prisma/client';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Specialities')
 @Controller('speciality')
 export class SpecialityController {
-  constructor(private readonly specialityService: SpecialityService) {}
+  constructor(private readonly specialityService: SpecialityService) { }
 
   @ApiOperation({ summary: 'Create a new speciality' })
-  @Auth(Role.ADMIN)
   @Post()
   create(@Body() createSpecialityDto: CreateSpecialityDto) {
     return this.specialityService.create(createSpecialityDto);
@@ -32,14 +29,12 @@ export class SpecialityController {
   }
 
   @ApiOperation({ summary: 'Update a speciality' })
-  @Auth(Role.ADMIN)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateSpecialityDto: UpdateSpecialityDto) {
     return this.specialityService.update(+id, updateSpecialityDto);
   }
 
   @ApiOperation({ summary: 'Delete a speciality' })
-  @Auth(Role.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.specialityService.remove(+id);

@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaUsersService } from './prisma/prisma-users.service';
 import { PrismaAcademicService } from './prisma/prisma-academic.service';
 import { PrismaProfilesService } from './prisma/prisma-profiles.service';
+import { CycleModule } from './cycle/cycle.module';
 
 
 @Module({
@@ -28,7 +29,8 @@ import { PrismaProfilesService } from './prisma/prisma-profiles.service';
     SubjectModule,
     StudentsubjectModule,
     StudentModule,
-    AuthModule
+    AuthModule,
+    CycleModule
   ],
   controllers: [AppController],
   providers: [

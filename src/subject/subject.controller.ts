@@ -3,17 +3,14 @@ import { SubjectService } from './subject.service';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
 import { PaginationDto } from 'src/pagination/pagination.dto';
-import { Auth } from 'src/auth/decorators';
-import { Role } from '@prisma/client';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Subjects')
 @Controller('subject')
 export class SubjectController {
-  constructor(private readonly subjectService: SubjectService) {}
+  constructor(private readonly subjectService: SubjectService) { }
 
   @ApiOperation({ summary: 'Create a new subject' })
-  @Auth(Role.ADMIN)
   @Post()
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
@@ -32,14 +29,12 @@ export class SubjectController {
   }
 
   @ApiOperation({ summary: 'Update a subject' })
-  @Auth(Role.ADMIN)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateSubjectDto: UpdateSubjectDto) {
     return this.subjectService.update(+id, updateSubjectDto);
   }
 
   @ApiOperation({ summary: 'Delete a subject' })
-  @Auth(Role.ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.subjectService.remove(+id);

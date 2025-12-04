@@ -1,10 +1,26 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../prisma/generated/client-academic"
+  output   = "../node_modules/@prisma/client-academic"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Cycle {
+  id            Int       @id @default(autoincrement())
+  name          String    // Ej: "2024-1", "2024-2", "2025-1"
+  year          Int
+  period        Int       // 1 o 2 (semestre)
+  startDate     DateTime  @map("start_date")
+  endDate       DateTime  @map("end_date")
+  isActive      Boolean   @default(false) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  subjects      Subject[]
+
+  @@unique([year, period])
+  @@map("cycle")
 }
 
 model Speciality {
@@ -34,11 +50,14 @@ model Subject {
   name        String
   careerId    Int      @map("career_id")
   cicleNumber Int      @map("cicle_number")
+  cycleId     Int?     @map("cycle_id") // Referencia al ciclo académico
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   career      Career   @relation(fields: [careerId], references: [id])
+  cycle       Cycle?   @relation(fields: [cycleId], references: [id])
 
   @@unique([careerId, cicleNumber, name])
   @@index([careerId, cicleNumber])
+  @@index([cycleId])
   @@map("subject")
 }

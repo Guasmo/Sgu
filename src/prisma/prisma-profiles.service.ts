@@ -20,11 +20,9 @@ export class PrismaProfilesService extends PrismaClient implements OnModuleInit,
 
   async onModuleInit() {
     await this.$connect();
-    console.log('Connected to Profiles Database');
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
-    console.log('Disconnected from Profiles Database');
   }
 }
